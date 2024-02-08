@@ -1,45 +1,40 @@
 struct AssetLoader {
     pub textures: HashMap<String, Texture>,
     pub fonts: HashMap<i32, Font>,
-    pub game: Game,
 }
 
 impl AssetLoader {
-    fn load_assets (
+    fn load_assets(
         ctx: &mut Context,
-        curmenu: &str,
+        game: &Game,
+        menumgr: &MenuManager,
+        assets: &PathBuf,
         logger: &Logger,
     ) -> tetra::Result<AssetLoader> {
-        let assets = find_folder::Search::ParentsThenKids(3, 3).for_folder("target/debug/assets").unwrap();
+
         let mut textures: HashMap<String, Texture> = HashMap::new();
         let mut fonts: HashMap<i32, Font> = HashMap::new();
         println!("{:?}", assets.to_str());
 
-        // Load Game
-        let game = GameLoader::Load(assets.join("game.json").to_str().unwrap());
-
-        for (k, v) in &game.menus {
-            logger.log("Main", k);
-        }
 
         // Init Engine
-        if !game.menus[curmenu].properties.BackgroundImage.is_empty() {
+        if !game.menus[&menumgr.curmenu].properties.BackgroundImage.is_empty() {
             let mut path = assets
                 .join("sprites")
-                .join(&game.menus[curmenu].properties.BackgroundImage.replace("\\", "/"))
+                .join(&game.menus[&menumgr.curmenu].properties.BackgroundImage.replace("\\", "/"))
                 .to_str()
                 .unwrap()
                 .to_string();
 
             if Path::new(&path).exists() {
                 textures.insert(
-                    String::from(&game.menus[curmenu].properties.BackgroundImage),
+                    String::from(&game.menus[&menumgr.curmenu].properties.BackgroundImage),
                     Texture::new(ctx, path)?,
                 );
             }
         }
 
-        for element in &game.menus[curmenu].elements {
+        for element in &game.menus[&menumgr.curmenu].elements {
             if !element.sprite.is_empty() {
                 let mut path = assets
                     .join("sprites")
@@ -65,7 +60,6 @@ impl AssetLoader {
         Ok(AssetLoader {
             textures: textures,
             fonts: fonts,
-            game: game,
         })
     }
 }

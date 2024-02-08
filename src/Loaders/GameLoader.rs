@@ -89,7 +89,7 @@ pub mod GameLoader {
     pub struct Code {
         #[serde(default)]
         pub negated: bool,
-        // args: Vec<Object>,
+        pub args: Vec<Value>,
         pub block: String,
         #[serde(default)]
         pub subcode: Vec<Code>,

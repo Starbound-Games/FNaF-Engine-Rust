@@ -12,7 +12,7 @@ use std::string::String;
 use std::time::Instant;
 //use bevy::math::{vec2, vec3};
 
-use tetra::{Context, ContextBuilder, State};
+use tetra::{Context, ContextBuilder, State, TetraError};
 use tetra::time::Timestep;
 
 use GameLoader::Game;
@@ -155,33 +155,49 @@ pub struct GameState {
     fps: SmartFPS,
     stopwatch: Instant,
     game: Game,
+    assets: PathBuf,
     in_menus: bool,
+    menumgr: MenuManager,
 }
 
 impl GameState {
     fn new(ctx: &mut Context) -> tetra::Result<GameState> {
-        let mut curmenu = "Main";
+        let mut menumgr: MenuManager = MenuManager::new();
 
         // Init startup here
         let logger = Logger::new();
         logger.draw_splash();
 
-        let assets = AssetLoader::load_assets(ctx, &mut curmenu, &logger)?;
+        // Load Game
+        let assets = find_folder::Search::ParentsThenKids(3, 3).for_folder("target/debug/assets").unwrap();
+        let game = GameLoader::Load(&assets.join("game.json").to_str().unwrap());
+
+        for (k, v) in &game.menus {
+            logger.log("Main", k);
+        }
+
+        if (!game.menus.contains_key("Warning"))
+        {
+            menumgr.curmenu = "Warning".parse().unwrap();
+        }
+        else {
+            menumgr.curmenu = "Main".parse().unwrap()
+        }
+        let AssetLoader = AssetLoader::load_assets(ctx,&game, &menumgr, &assets, &logger)?;
 
         let mut fps = SmartFPS::new(5);
         let mut stopwatch: Instant = Instant::now();
 
-       // let font = FontLoader::font_from_name(ctx, "Arial", 16).unwrap();
-       // println!("{:?}", );
-
         Ok(GameState {
-            textures: assets.textures,
-            fonts: assets.fonts,
+            textures: AssetLoader.textures,
+            fonts: AssetLoader.fonts,
             texts: HashMap::new(),
             fps,
             stopwatch,
-            game: assets.game,
+            game,
+            assets,
             in_menus: true,
+            menumgr
         })
     }
 }
@@ -190,6 +206,14 @@ impl State for GameState {
     fn draw(&mut self, ctx: &mut Context) -> tetra::Result {
         if self.in_menus {
             MenuRenderer::render(ctx, self)?;
+        }
+
+        Ok(())
+    }
+
+    fn update(&mut self, ctx: &mut Context) -> Result<(), TetraError> {
+        if self.in_menus {
+            MenuManager::update(ctx, self)?;
         }
 
         Ok(())
