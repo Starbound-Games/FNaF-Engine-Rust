@@ -1,0 +1,25 @@
+[package]
+name = "FNaF-Engine-Rust"
+version = "0.1.0"
+authors = ["hexdev"]
+edition = "2021"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
+chrono = "0.4.31"
+#piston = "0.55.0"
+tetra = "0.8.0"
+#font-loader = "0.11.0"
+#piston2d-graphics = "0.44.0"
+#pistoncore-glutin_window = "0.72.0"
+#piston2d-opengl_graphics = "0.83.0"
+#piston_window = "0.131.0"
+find_folder = "0.3.0"
+#fps_counter = "2.0.0"
+#bevy = "0.12.1"
+#comfy = "0.3.1"
+#vulkust = "0.1.0"
+#wasm-bindgen = "0.2.90"
+#Nylon = { path = "/media/hexdev/New Volume/actually repos/Nylon" }
