@@ -157,7 +157,7 @@ pub struct GameState {
     game: Game,
     assets: PathBuf,
     in_menus: bool,
-    menumgr: MenuManager,
+    pub menumgr: MenuManager,
 }
 
 impl GameState {
