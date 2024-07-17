@@ -3,19 +3,18 @@ extern crate serde;
 extern crate serde_json;
 extern crate tetra;
 
-//use bevy::render::texture::Image;
 use std::collections::HashMap;
 use std::env;
 use std::fmt::Debug;
+use std::hash::Hash;
 use std::path::{Path, PathBuf};
 use std::string::String;
 use std::time::Instant;
-//use bevy::math::{vec2, vec3};
-
 use tetra::{Context, ContextBuilder, State, TetraError};
 use tetra::time::Timestep;
 
 use GameLoader::Game;
+use crate::GameLoader::Office;
 
 include!("Utils/Logger.rs");
 include!("Loaders/GameLoader.rs");
@@ -24,6 +23,13 @@ include!("Loaders/AssetLoader.rs");
 include!("Renderers/MenuRenderer.rs");
 //include!("Loaders/FontLoader.rs");
 include!("Logic/Game/MenuManager.rs");
+include!("Logic/Scripting/EventManager.rs");
+include!("Logic/Game/OfficeManager.rs");
+include!("Renderers/OfficeRenderer.rs");
+include!("Logic/Game/Types/OfficeData.rs");
+include!("Logic/Game/Types/Button.rs");
+
+
 
 //use bevy::prelude::*;
 //use bevy::sprite::Anchor;
@@ -148,21 +154,60 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 }*/
 
-pub struct GameState {
+pub struct CacheData {
     textures: HashMap<String, Texture>,
     fonts: HashMap<i32, Font>,
-    texts: HashMap<String, Text>,
+    texts: HashMap<String, Text>
+}
+
+pub struct EngineData {
     fps: SmartFPS,
     stopwatch: Instant,
     game: Game,
     assets: PathBuf,
-    in_menus: bool,
+    scene: i32,
     pub menumgr: MenuManager,
+    pub officemgr: OfficeManager,
+    pub logger: Logger,
+    pub buttons: HashMap<String, Button2D>
 }
 
-impl GameState {
-    fn new(ctx: &mut Context) -> tetra::Result<GameState> {
+pub struct GameState {
+    cache: CacheData,
+    engine: EngineData,
+    eventmanager: EventManager
+}
+
+impl CacheData {
+    fn new(ctx: &mut Context, mut engine_data: &mut EngineData) -> tetra::Result<CacheData> {
+
+        if (engine_data.game.menus.contains_key("Warning"))
+        {
+            engine_data.menumgr.curmenu = "Warning".parse().unwrap();
+        }
+        else {
+            engine_data.menumgr.curmenu = "Main".parse().unwrap()
+        }
+        let mut menus_cache = AssetLoader::load_menus(ctx, &engine_data.game, &engine_data.menumgr, &engine_data.assets, &engine_data.logger)?;
+        let offices_cache = AssetLoader::load_offices(ctx, &engine_data.game, &engine_data.assets, &engine_data.logger)?;
+
+        // Thanks to the way rust works, doing it like this makes the data
+        // in OfficeCache move instead of clone, into MenuCache
+        menus_cache.fonts.extend(offices_cache.fonts);
+        menus_cache.textures.extend(offices_cache.textures);
+
+        Ok(CacheData {
+            textures: menus_cache.textures,
+            fonts: menus_cache.fonts,
+            texts: HashMap::new(),
+        })
+    }
+}
+
+impl EngineData {
+    fn new() -> tetra::Result<EngineData> {
         let mut menumgr: MenuManager = MenuManager::new();
+        let mut officemgr: OfficeManager = OfficeManager::new();
 
         // Init startup here
         let logger = Logger::new();
@@ -172,48 +217,83 @@ impl GameState {
         let assets = find_folder::Search::ParentsThenKids(3, 3).for_folder("target/debug/assets").unwrap();
         let game = GameLoader::Load(&assets.join("game.json").to_str().unwrap());
 
-        for (k, v) in &game.menus {
-            logger.log("Main", k);
-        }
-
-        if (!game.menus.contains_key("Warning"))
-        {
-            menumgr.curmenu = "Warning".parse().unwrap();
-        }
-        else {
-            menumgr.curmenu = "Main".parse().unwrap()
-        }
-        let AssetLoader = AssetLoader::load_assets(ctx,&game, &menumgr, &assets, &logger)?;
-
         let mut fps = SmartFPS::new(5);
         let mut stopwatch: Instant = Instant::now();
 
-        Ok(GameState {
-            textures: AssetLoader.textures,
-            fonts: AssetLoader.fonts,
-            texts: HashMap::new(),
+        Ok(EngineData {
             fps,
             stopwatch,
             game,
             assets,
-            in_menus: true,
-            menumgr
+            scene: 0,
+            menumgr,
+            officemgr,
+            logger,
+            buttons: HashMap::new(),
+        })
+    }
+}
+
+impl GameState {
+    fn new(ctx: &mut Context) -> tetra::Result<GameState> {
+        let mut engine = EngineData::new().unwrap();
+        let mut cache = CacheData::new(ctx, &mut engine).unwrap();
+        let mut eventmanager = EventManager::new(engine.logger.clone());
+        eventmanager.run_script(&engine.game.menus[&engine.menumgr.curmenu].code);
+        eventmanager.trigger_event("current_tick_equals", &["10".parse().unwrap()], &mut engine);
+
+
+       // OfficeManager::init_office("office".to_string(), &mut engine, &mut eventmanager); // this is a hardcoded night start
+        MenuManager::recache_buttons(ctx, &mut engine, &mut eventmanager, &mut cache);
+
+        Ok(GameState {
+            cache,
+            engine,
+            eventmanager
         })
     }
 }
 
 impl State for GameState {
     fn draw(&mut self, ctx: &mut Context) -> tetra::Result {
-        if self.in_menus {
-            MenuRenderer::render(ctx, self)?;
+        match (self.engine.scene)
+        {
+            0 => {
+                MenuRenderer::render(ctx, &mut self.engine, &mut self.cache)?;
+            },
+            1 => {
+                OfficeRenderer::render(ctx, &mut self.engine, &mut self.cache)?;
+            }
+            _ => {}
         }
 
         Ok(())
     }
 
     fn update(&mut self, ctx: &mut Context) -> Result<(), TetraError> {
-        if self.in_menus {
-            MenuManager::update(ctx, self)?;
+        self.eventmanager.trigger_event("on_game_loop", &[String::new()], &mut self.engine);
+
+        let mut event_name: String = String::new();
+        let mut event_args: Vec<String> = Vec::new();
+
+        for (k, mut button) in &mut self.engine.buttons {
+            button.update(ctx);
+            if button.is_clicked {
+                event_name = button.event.clone();
+                event_args = button.event_args.clone();
+            }
+        }
+        self.eventmanager.trigger_event(&event_name, &event_args, &mut self.engine);
+
+        match (self.engine.scene)
+        {
+            0 => {
+                MenuManager::update(ctx, self)?;
+            },
+            1 => {
+                OfficeManager::update(ctx, self)?;
+            }
+            _ => {}
         }
 
         Ok(())

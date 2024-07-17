@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct SmartFPS {
     current_frametimes: f64,
     weight: f64,

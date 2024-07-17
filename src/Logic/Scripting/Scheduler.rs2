@@ -1,0 +1,89 @@
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{channel, Sender};
+use std::thread;
+use serde_json::Value;
+
+use crate::GameLoader::{Code, Menu};
+include!("ScriptingAPI.rs");
+
+pub struct Scheduler {
+    commands: Arc<Mutex<HashMap<String, Box<dyn Fn(&Vec<Value>, &Arc<Mutex<EngineData>>/*, &Scheduler*/) -> bool + Send>>>>,
+    event_threads: HashMap<String, Vec<thread::JoinHandle<()>>>,
+    event_senders: HashMap<String, Sender<Vec<String>>>,
+    engine_data: Arc<Mutex<EngineData>>,
+}
+
+impl Scheduler {
+    pub fn new(engine_data: Arc<Mutex<EngineData>>) -> Self {
+        Scheduler {
+            commands: Arc::new(Mutex::new(ScriptingAPI::init_api().unwrap().actions)),
+            event_threads: HashMap::new(),
+            event_senders: HashMap::new(),
+            engine_data,
+        }
+    }
+
+    pub fn register_command<F>(&mut self, command: &str, func: F)
+        where
+            F: Fn(&Vec<Value>, &Arc<Mutex<EngineData>>/*, &Scheduler*/) -> bool + Send + 'static,
+    {
+        self.commands.lock().unwrap().insert(command.to_string(), Box::new(func));
+    }
+
+    pub fn register_commands(&mut self, new_commands: HashMap<String, Box<dyn Fn(&Vec<Value>, &Arc<Mutex<EngineData>>/*, &Scheduler*/) -> bool + Send>>) {
+        self.commands.lock().unwrap().extend(new_commands);
+    }
+
+    pub fn register_event(&mut self, event_name: &str, event_args: Vec<Value>, subcode: Vec<Code>) {
+        println!("Registering Event: {:0} With args: {:?}", event_name, event_args);
+        let (sender, receiver) = channel();
+        self.event_senders.insert(event_name.to_string(), sender);
+        let commands = Arc::clone(&self.commands);
+        let game_state = Arc::clone(&self.engine_data);
+        let event_receiver = Arc::new(Mutex::new(receiver));
+        let handle = thread::spawn(move || {
+            loop {
+                match event_receiver.lock().unwrap().try_recv() {
+                    Ok(args) if args == event_args => {
+                        for action in &subcode {
+                            run_block(&commands, &game_state, action);
+                        }
+                    }
+                    _ => continue,
+                }
+            }
+        });
+        self.event_threads.entry(event_name.to_string()).or_insert_with(|| Vec::new()).push(handle);
+    }
+
+    pub fn trigger_event(&self, event_name: &str, args: Vec<String>) {
+        println!("Triggering Event: {}", event_name);
+        if let Some(sender) = self.event_senders.get(event_name) {
+            sender.send(args).unwrap();
+        }
+    }
+
+    pub fn stop_event(&mut self, event_name: &str) {
+        if let Some(threads) = self.event_threads.get_mut(event_name) {
+            for handle in threads {
+                handle.thread().unpark();
+            }
+        }
+    }
+
+    pub fn run_script(&mut self, script: &Vec<Code>) {
+        for event in script {
+            self.register_event(&event.block, event.args.clone(), event.subcode.clone());
+        }
+    }
+}
+
+fn run_block(commands: &Arc<Mutex<HashMap<String, Box<dyn Fn(&Vec<Value>, &Arc<Mutex<EngineData>>/*, &Scheduler*/) -> bool + Send>>>>, engine_data: &Arc<Mutex<EngineData>>, code: &Code) {
+    let commands2 = commands.lock().unwrap();
+    if let Some(command) = commands2.get(&code.block) {
+        let _ = command(&code.args, engine_data);
+        for subcode in &code.subcode {
+            run_block(commands, engine_data, subcode);
+        }
+    }
+}

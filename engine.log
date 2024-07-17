@@ -4,34 +4,113 @@
  |     \  /    |    \/    |    \|     \     |        \/    |    \    \_\  \   /    |    \|        \    
  \___  /  \____|__  /\____|__  /\___  /    /_______  /\____|__  /\______  /___\____|__  /_______  /    
      \/           \/         \/     \/             \/         \/        \/            \/        \/     
-                                   ____________________ ________                                       
-                                   \______   \______   \\_____  \                                      
-  ______   ______   ______   ______ |     ___/|       _/ /   |   \   ______   ______   ______   ______ 
- /_____/  /_____/  /_____/  /_____/ |    |    |    |   \/    |    \ /_____/  /_____/  /_____/  /_____/ 
-                                    |____|    |____|_  /\_______  /                                    
-                                                     \/         \/                                     
-18:20:00 INFO (Main): CatDiamond
-18:20:00 INFO (Main): PanoramaTest
-18:20:00 INFO (Main): News
-18:20:00 INFO (Main): BackgroundColorTest
-18:20:00 INFO (Main): MinigameCode
-18:20:00 INFO (Main): lua
-18:20:00 INFO (Main): GN_jumpscare
-18:20:00 INFO (Main): GameOver
-18:20:00 INFO (Main): CutscenesCode
-18:20:00 INFO (Main): 6AM
-18:20:00 INFO (Main): Loading
-18:20:00 INFO (Main): Main
-18:20:00 INFO (Main): Ending5
-18:20:00 INFO (Main): AnimTesting
-18:20:00 INFO (Main): Warning
-18:20:00 INFO (Main): Ending7
-18:20:00 INFO (Main): AfterOver
-18:20:00 INFO (Main): What Day
-18:20:00 INFO (Main): CrashRuntime
-18:20:00 INFO (Main): WhatDay
-18:20:00 INFO (Main): whenimage
-18:20:00 INFO (Main): Ending6
-18:20:00 INFO (Main): SelectionMenu
-18:20:00 INFO (Main): CustomNight
-18:20:00 INFO (Main): Loaded Assets
+                              __________ ____ ___  ____________________                            
+                              \______   \    |   \/   _____/\__    ___/                            
+      ______   ______   ______ |       _/    |   /\_____  \   |    |  ______   ______   ______     
+     /_____/  /_____/  /_____/ |    |   \    |  / /        \  |    | /_____/  /_____/  /_____/     
+                               |____|_  /______/ /_______  /  |____|                               
+                                      \/                 \/                                        
+17:25:10 INFO (AssetLoader): BackgroundColorTest
+17:25:10 INFO (AssetLoader): Loading
+17:25:10 INFO (AssetLoader): CustomNight
+17:25:10 INFO (AssetLoader): AfterOver
+17:25:10 INFO (AssetLoader): Warning
+17:25:10 INFO (AssetLoader): PanoramaTest
+17:25:10 INFO (AssetLoader): GameOver
+17:25:10 INFO (AssetLoader): AnimTesting
+17:25:10 INFO (AssetLoader): Ending6
+17:25:10 INFO (AssetLoader): Ending7
+17:25:10 INFO (AssetLoader): GN_jumpscare
+17:25:10 INFO (AssetLoader): Main
+17:25:10 INFO (AssetLoader): News
+17:25:10 INFO (AssetLoader): Ending5
+17:25:10 INFO (AssetLoader): whenimage
+17:25:10 INFO (AssetLoader): CatDiamond
+17:25:10 INFO (AssetLoader): MinigameCode
+17:25:10 INFO (AssetLoader): SelectionMenu
+17:25:10 INFO (AssetLoader): WhatDay
+17:25:10 INFO (AssetLoader): 6AM
+17:25:10 INFO (AssetLoader): CrashRuntime
+17:25:10 INFO (AssetLoader): CutscenesCode
+17:25:10 INFO (AssetLoader): What Day
+17:25:10 INFO (AssetLoader): lua
+17:25:11 INFO (AssetLoader): Loaded Assets
+17:25:13 INFO (AssetLoader): Loaded Assets
+17:25:13 INFO (Event Manager): Registering Event: current_tick_equals With args: ["10"]
+17:25:13 INFO (Event Manager): Registering Event: user_left_clicked With args: []
+17:25:13 INFO (Menu Manager): Going to: Main
+17:25:13 INFO (Event Manager): Killed 2 Listeners
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["newgame"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["continue"]
+17:25:13 INFO (Event Manager): Registering Event: on_game_loop With args: []
+17:25:13 INFO (Event Manager): Registering Event: on_menu_start With args: []
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["6thnight"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["cn"]
+17:25:13 INFO (Event Manager): Registering Event: every_num_ticks With args: ["7"]
+17:25:13 INFO (Event Manager): Registering Event: every_num_ticks With args: ["25"]
+17:25:13 INFO (Event Manager): Registering Event: every_num_ticks With args: ["144"]
+17:25:13 INFO (Event Manager): Registering Event: every_num_ticks With args: ["46"]
+17:25:13 INFO (Event Manager): Registering Event: on_menu_start With args: []
+17:25:13 INFO (Event Manager): Registering Event: any_button_selected With args: []
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["direct1"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["direct2"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["unlock"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["dn2"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["lock"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["snbn"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["p"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["m"]
+17:25:13 INFO (Event Manager): Registering Event: user_left_clicked With args: []
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["exit"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["zero"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["random"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["cat"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["mat"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["full"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["wind"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["hicb"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["refresh"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["stopc"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["showtitle"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["hidetitle"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["debugger"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["arrows"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["token"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["garred"]
+17:25:13 INFO (Event Manager): Registering Event: button_selected With args: ["garr"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["lua"]
+17:25:13 INFO (Event Manager): Registering Event: button_clicked With args: ["except"]
+17:25:13 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:13 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:13 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:13 INFO (Event Manager): Function for code block 'comment' not found
+17:25:13 INFO (Event Manager): Function for code block 'set_data' not found
+17:25:13 INFO (Event Manager): Function for code block 'play_sound' not found
+17:25:13 INFO (Event Manager): Function for code block 'set_var' not found
+17:25:13 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:21 INFO (Event Manager): Function for code block 'windowed' not found
+17:25:26 INFO (Event Manager): Function for code block 'fullscreen' not found
+17:25:28 INFO (Event Manager): Function for code block 'windowed' not found
+17:25:29 INFO (Event Manager): Function for code block 'windowed' not found
+17:25:30 INFO (Event Manager): Function for code block 'windowed' not found
+17:25:30 INFO (Event Manager): Function for code block 'windowed' not found
+17:25:30 INFO (Event Manager): Function for code block 'windowed' not found
+17:25:30 INFO (Event Manager): Function for code block 'windowed' not found
+17:25:35 INFO (Event Manager): Function for code block 'fullscreen' not found
+17:25:37 INFO (Event Manager): Function for code block 'set_data' not found
+17:25:37 INFO (Menu Manager): Going to: WhatDay
+17:25:37 INFO (Event Manager): Killed 40 Listeners
+17:25:37 INFO (Event Manager): Registering Event: current_tick_equals With args: ["3"]
+17:25:37 INFO (Event Manager): Registering Event: current_tick_equals With args: ["4"]
+17:25:37 INFO (Event Manager): Registering Event: current_tick_equals With args: ["7"]
+17:25:37 INFO (Event Manager): Registering Event: current_tick_equals With args: ["9"]
+17:25:37 INFO (Event Manager): Registering Event: current_tick_equals With args: ["80"]
+17:25:37 INFO (Event Manager): Registering Event: on_menu_start With args: []
+17:25:37 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:37 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:37 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:37 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:37 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:37 INFO (Event Manager): Function for code block 'compare_values' not found
+17:25:37 INFO (Event Manager): Function for code block 'comment' not found
+17:25:37 INFO (Event Manager): Function for code block 'comment' not found

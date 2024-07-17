@@ -1,10 +1,12 @@
+use std::fmt::format;
+
 struct AssetLoader {
     pub textures: HashMap<String, Texture>,
     pub fonts: HashMap<i32, Font>,
 }
 
 impl AssetLoader {
-    fn load_assets(
+    fn load_menus(
         ctx: &mut Context,
         game: &Game,
         menumgr: &MenuManager,
@@ -14,49 +16,116 @@ impl AssetLoader {
 
         let mut textures: HashMap<String, Texture> = HashMap::new();
         let mut fonts: HashMap<i32, Font> = HashMap::new();
-        println!("{:?}", assets.to_str());
 
-
-        // Init Engine
-        if !game.menus[&menumgr.curmenu].properties.BackgroundImage.is_empty() {
-            let mut path = assets
-                .join("sprites")
-                .join(&game.menus[&menumgr.curmenu].properties.BackgroundImage.replace("\\", "/"))
-                .to_str()
-                .unwrap()
-                .to_string();
-
-            if Path::new(&path).exists() {
-                textures.insert(
-                    String::from(&game.menus[&menumgr.curmenu].properties.BackgroundImage),
-                    Texture::new(ctx, path)?,
-                );
-            }
+        for (k, v) in &game.menus {
+            logger.log("AssetLoader", k);
         }
 
-        for element in &game.menus[&menumgr.curmenu].elements {
-            if !element.sprite.is_empty() {
+        // Init Engine
+        for menu in game.menus.values() {
+            if !&menu.properties.BackgroundImage.is_empty() {
                 let mut path = assets
                     .join("sprites")
-                    .join(&element.sprite.replace("\\", "/"))
+                    .join(&menu.properties.BackgroundImage.replace("\\", "/"))
                     .to_str()
                     .unwrap()
                     .to_string();
 
                 if Path::new(&path).exists() {
-                    textures.insert(String::from(&element.sprite), Texture::new(ctx, path)?);
+                    textures.insert(
+                        String::from(&menu.properties.BackgroundImage),
+                        Texture::new(ctx, path)?,
+                    );
                 }
             }
 
-            if !fonts.contains_key(&element.fontsize) {
-                fonts.insert(
-                    element.fontsize,
-                    Font::vector(ctx, "./src/Arial.ttf", element.fontsize as f32)?,
-                );
+
+            for element in &menu.elements {
+                if !element.sprite.is_empty() {
+                    let mut path = assets
+                        .join("sprites")
+                        .join(&element.sprite.replace("\\", "/"))
+                        .to_str()
+                        .unwrap()
+                        .to_string();
+
+                    if Path::new(&path).exists() {
+                        textures.insert(String::from(&element.sprite), Texture::new(ctx, path)?);
+                    }
+                }
+
+                if !fonts.contains_key(&element.fontsize) {
+                    fonts.insert(
+                        element.fontsize,
+                        Font::vector(ctx, "./src/Arial.ttf", element.fontsize as f32)?,
+                    );
+                }
             }
         }
 
-        logger.log("Main", "Loaded Assets");
+        logger.log("AssetLoader", "Loaded Assets");
+        Ok(AssetLoader {
+            textures: textures,
+            fonts: fonts,
+        })
+    }
+
+    fn load_offices(
+        ctx: &mut Context,
+        game: &Game,
+        assets: &PathBuf,
+        logger: &Logger,
+    ) -> tetra::Result<AssetLoader> {
+
+        let mut textures: HashMap<String, Texture> = HashMap::new();
+        let mut fonts: HashMap<i32, Font> = HashMap::new();
+
+        // Init Engine
+        for office in game.offices.values() {
+            for state in &mut office.states.values() {
+                if !state.is_empty() {
+                    let mut path = assets
+                        .join("sprites")
+                        .join(&state.replace("\\", "/"))
+                        .to_str()
+                        .unwrap()
+                        .to_string();
+
+                    if Path::new(&path).exists() {
+                        textures.insert(String::from(state), Texture::new(ctx, path)?);
+                    }
+                }
+            }
+
+            for obj in &office.objects {
+                if !obj.sprite.is_empty() {
+                    let mut path = assets
+                        .join("sprites")
+                        .join(&obj.sprite.replace("\\", "/"))
+                        .to_str()
+                        .unwrap()
+                        .to_string();
+
+                    if Path::new(&path).exists() {
+                        textures.insert(String::from(&obj.sprite), Texture::new(ctx, path)?);
+                    }
+                }
+                if !obj.on_sprite.is_empty() {
+                    let mut path = assets
+                        .join("sprites")
+                        .join(&obj.sprite.replace("\\", "/"))
+                        .to_str()
+                        .unwrap()
+                        .to_string();
+
+                    if Path::new(&path).exists() {
+                        textures.insert(String::from(&obj.sprite), Texture::new(ctx, path)?);
+                    }
+                }
+            }
+        }
+
+        logger.log("AssetLoader", "Loaded Assets");
         Ok(AssetLoader {
             textures: textures,
             fonts: fonts,

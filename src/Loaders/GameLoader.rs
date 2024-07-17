@@ -1,3 +1,6 @@
+use std::fs::FileType;
+use regex::Replacer;
+
 pub mod GameLoader {
     use std::collections::HashMap;
     use std::io::Read;
@@ -6,19 +9,24 @@ pub mod GameLoader {
     use serde::de::Error;
     use serde::Deserializer;
     use serde_json::Value;
+    use std::fs;
+    use std::path::PathBuf;
+    use std::str::FromStr;
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Game {
-        animatronics: HashMap<String, Animatronic>,
-        cameras: HashMap<String, CamUI>,
-        game_info: GameInfo,
+        pub(crate) animatronics: HashMap<String, Animatronic>,
+        pub(crate) cameras: HashMap<String, CamUI>,
+        pub(crate) game_info: GameInfo,
         pub(crate) menus: HashMap<String, Menu>,
-        office: Office,
-        sounds: Sounds,
-        loaded_extensions: Vec<String>,
+        pub(crate) offices: HashMap<String, Office>,
+        pub(crate) sounds: Sounds,
+        pub(crate) loaded_extensions: Vec<String>,
+        #[serde(skip_deserializing)]
+        pub(crate) office_scripts: HashMap<String, Vec<Code>>,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Animatronic
     {
         pub AI: Option<Vec<i32>>,
@@ -30,7 +38,7 @@ pub mod GameLoader {
         pub State: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct PathNode {
         #[serde(default)]
         pub id: String,
@@ -44,26 +52,26 @@ pub mod GameLoader {
         pub camid: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct CamUI {
         //buttons: HashMap<String, CamSprite>,
         // music_box: Vec<i32>,
         // sprites: HashMap<String, CamSprite>,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct CamSprite; // TODO: implement my campsite
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct GameInfo {
         id: String,
         title: String,
         style: i32,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Menu {
-        code: Vec<Code>,
+        pub(crate) code: Vec<Code>,
         #[serde(deserialize_with = "ignore_if_map")]
         pub(crate) elements: Vec<Element>,
         pub(crate) properties: Properties,
@@ -85,7 +93,7 @@ pub mod GameLoader {
         }
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Code {
         #[serde(default)]
         pub negated: bool,
@@ -95,7 +103,7 @@ pub mod GameLoader {
         pub subcode: Vec<Code>,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Element {
         #[serde(default)]
         pub Blue: i32,
@@ -124,7 +132,7 @@ pub mod GameLoader {
         pub animation: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Properties {
         #[serde(default)]
         pub(crate) BackgroundImage: String,
@@ -148,34 +156,34 @@ pub mod GameLoader {
         ButtonArrowFont: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Office {
-        animations: Animations,
-        flashlight: bool,
-        mask: bool,
-        objects: Vec<OfficeObject>,
-        panorama: bool,
-        power: Power,
-        states: HashMap<String, String>,
-        toxic: bool,
-        uibuttons: Uibuttons,
+        pub animations: Animations,
+        pub flashlight: bool,
+        pub mask: bool,
+        pub(crate) objects: Vec<OfficeObject>,
+        pub panorama: bool,
+        pub power: Power,
+        pub(crate) states: HashMap<String, String>,
+        pub toxic: bool,
+        pub uibuttons: Uibuttons,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Animations {
         camera: String,
         mask: String,
         powerout: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct OfficeObject {
         #[serde(default)]
         pub clickstyle: bool,
-        id: String,
+        pub id: String,
         #[serde(default)]
         pub on_sprite: String,
-        position: Vec<i32>,
+        pub position: Vec<i32>,
         #[serde(default)]
         pub close_sound: String,
         #[serde(default)]
@@ -185,14 +193,14 @@ pub mod GameLoader {
         #[serde(default)]
         pub sound: String,
         #[serde(default)]
-        sprite: String,
+        pub sprite: String,
         #[serde(default)]
-        trigger: Vec<i32>,
+        pub trigger: Vec<i32>,
         #[serde(default)]
         pub r#type: String,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Power {
         animatronic: String,
         enabled: bool,
@@ -200,25 +208,25 @@ pub mod GameLoader {
         ucn: bool,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Uibuttons {
         camera: CameraPanel,
         mask: MaskPanel,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct CameraPanel {
         image: String,
         position: Vec<i32>,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct MaskPanel {
         image: String,
         position: Vec<i32>,
     }
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Sounds {
         ambience: String,
         animatronic_move: Vec<String>,
@@ -238,17 +246,32 @@ pub mod GameLoader {
     }
 
     pub fn Load(input_json_path: &str) -> Game {
-        // if !File::exists(input_json_path) {
-        //     panic!("The specified JSON file was not found: {}", input_json_path);
-        // }
-
         let mut file = std::fs::File::open(input_json_path).expect("Failed to open the JSON file");
         let mut content = String::new();
         file.read_to_string(&mut content)
             .expect("Failed to read the JSON file");
 
-        let settings = serde_json::from_str::<Game>(&content)
+        let mut settings = serde_json::from_str::<Game>(&content)
             .expect("Failed to deserialize JSON content");
+
+        let mut scripts: HashMap<String, Vec<Code>> = HashMap::new();
+
+        for script in fs::read_dir(input_json_path.replace("game.json","assets")).unwrap() {
+            let script = script.unwrap();
+            if script.file_name().to_str().unwrap().ends_with(".fescript")
+            {
+                let mut json = String::new();
+                fs::File::open(script.path())
+                    .expect("Failed to open the JSON file")
+                    .read_to_string(&mut json)
+                    .expect("Failed to read the JSON file");
+
+                scripts.insert(
+                    script.file_name().to_str().unwrap().to_string(),
+                    serde_json::from_str::<Vec<Code>>(&json).expect("Failed to deserialize JSON content"));
+            }
+        }
+        settings.office_scripts = scripts;
 
         settings
     }
