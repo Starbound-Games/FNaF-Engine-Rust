@@ -1,5 +1,7 @@
+
 use std::fs::FileType;
 use regex::Replacer;
+use rodio::source::from_iter;
 
 pub mod GameLoader {
     use std::collections::HashMap;
@@ -12,6 +14,8 @@ pub mod GameLoader {
     use std::fs;
     use std::path::PathBuf;
     use std::str::FromStr;
+    use serde_json::Map;
+    use std::fmt::Display;
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Game {
@@ -24,6 +28,8 @@ pub mod GameLoader {
         pub(crate) loaded_extensions: Vec<String>,
         #[serde(skip_deserializing)]
         pub(crate) office_scripts: HashMap<String, Vec<Code>>,
+        #[serde(skip_deserializing)]
+        pub(crate) animations: HashMap<String, Vec<AnimationJson>>,
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -54,13 +60,20 @@ pub mod GameLoader {
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct CamUI {
-        //buttons: HashMap<String, CamSprite>,
-        // music_box: Vec<i32>,
-        // sprites: HashMap<String, CamSprite>,
+        #[serde(default)]
+        pub buttons: HashMap<String, Vec<MultiType>>,
+        #[serde(default)]
+        pub music_box: Vec<i32>,
+        #[serde(default)]
+        pub sprites: HashMap<String, Vec<MultiType>>,
     }
 
-    #[derive(Debug, Serialize, Deserialize, Clone)]
-    pub struct CamSprite; // TODO: implement my campsite
+    #[derive(Debug,  Serialize, Deserialize, Clone)]
+    #[serde(untagged)]
+    pub enum MultiType {
+        Str(String),
+        Int(i32),
+    }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct GameInfo {
@@ -77,6 +90,18 @@ pub mod GameLoader {
         pub(crate) properties: Properties,
     }
 
+    struct StringError(String);
+
+    impl<E> From<E> for StringError
+    where
+        E: Display,
+    {
+        fn from(value: E) -> Self {
+            Self(value.to_string())
+        }
+    }
+
+
     fn ignore_if_map<'de, D>(deserializer: D) -> Result<Vec<Element>, D::Error>
         where
             D: serde::Deserializer<'de>,
@@ -84,11 +109,27 @@ pub mod GameLoader {
         let value: Value = Deserialize::deserialize(deserializer)?;
 
         match &value {
-            Value::Array(array) => {
+            Value::Array(_array) => {
                 let elements: Result<Vec<Element>, _> = serde_json::from_value(value.clone());
                 elements.map_err(|e| D::Error::custom(format!("Failed to deserialize elements: {}", e)))
             }
-            Value::Object(_) => Ok(Vec::new()), // Skip deserializing if it's a map
+            Value::Object(_hashmap) => {
+                let parse: HashMap<String, Value> = serde_json::from_value(value.clone()).unwrap();
+                let values_vec = parse.values().cloned();
+                let mut elements_vec: Vec<Element> = Vec::new();
+                let mut i = 0;
+
+                for val in values_vec.skip(1) {
+                     match serde_json::from_value(val).map_err(|e| e.to_string()) {
+                        Ok(n) => {
+                            elements_vec.insert(i, n);
+                            i += 1;
+                        },
+                        Err(err) => println!("INVALID ELEMENT: {}", err),
+                    }
+                }
+                Ok(elements_vec)
+            }
             _ => Err(D::Error::custom("Unexpected JSON type for Vec<Element>")),
         }
     }
@@ -120,25 +161,29 @@ pub mod GameLoader {
         #[serde(default)]
         pub id: String,
         #[serde(default)]
+        pub animation: String,
+        #[serde(default)]
         pub text: String,
         pub r#type: String,
         #[serde(default)]
         pub(crate) sprite: String,
         #[serde(default)]
         pub animatronic: String,
-        pub x: i32,
-        pub y: i32,
         #[serde(default)]
-        pub animation: String,
+        pub x: i32,
+        #[serde(default)]
+        pub y: i32,
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Properties {
         #[serde(default)]
         pub(crate) BackgroundImage: String,
+        #[serde(default)]
         pub BackgroundColor: String,
         #[serde(default)]
-        BackgroundMusic: String,
+        pub BackgroundMusic: String,
+        #[serde(default)]
         pub ButtonArrows: bool,
         #[serde(default)]
         pub FadeIn: bool,
@@ -210,39 +255,45 @@ pub mod GameLoader {
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Uibuttons {
-        camera: CameraPanel,
-        mask: MaskPanel,
+        pub camera: CameraPanel,
+        pub mask: MaskPanel,
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct CameraPanel {
-        image: String,
-        position: Vec<i32>,
+        pub image: String,
+        pub position: Vec<i32>,
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct MaskPanel {
-        image: String,
-        position: Vec<i32>,
+        pub image: String,
+        pub position: Vec<i32>,
     }
 
     #[derive(Debug, Serialize, Deserialize, Clone)]
     pub struct Sounds {
-        ambience: String,
-        animatronic_move: Vec<String>,
-        blip: String,
-        camdown: String,
-        camup: String,
-        flashlight: String,
-        maskbreathing: String,
-        maskoff: String,
-        maskon: String,
-        masktoxic: String,
-        music_box_run_out: String,
-        phone_calls: Vec<String>,
-        powerout: String,
-        signal_interrupted: String,
-        stare: String,
+        pub ambience: String,
+        pub animatronic_move: Vec<String>,
+        pub blip: String,
+        pub camdown: String,
+        pub camup: String,
+        pub flashlight: String,
+        pub maskbreathing: String,
+        pub maskoff: String,
+        pub maskon: String,
+        pub masktoxic: String,
+        pub music_box_run_out: String,
+        pub phone_calls: Vec<String>,
+        pub powerout: String,
+        pub signal_interrupted: String,
+        pub stare: String,
+    }
+
+    #[derive(Debug, Serialize, Deserialize, Clone)]
+    pub struct AnimationJson {
+        pub duration: i32,
+        pub sprite: String,
     }
 
     pub fn Load(input_json_path: &str) -> Game {
@@ -255,8 +306,9 @@ pub mod GameLoader {
             .expect("Failed to deserialize JSON content");
 
         let mut scripts: HashMap<String, Vec<Code>> = HashMap::new();
+        let mut animations: HashMap<String, Vec<AnimationJson>> = HashMap::new();
 
-        for script in fs::read_dir(input_json_path.replace("game.json","assets")).unwrap() {
+        for script in fs::read_dir(input_json_path.replace("game.json","scripts")).unwrap() {
             let script = script.unwrap();
             if script.file_name().to_str().unwrap().ends_with(".fescript")
             {
@@ -272,6 +324,23 @@ pub mod GameLoader {
             }
         }
         settings.office_scripts = scripts;
+
+        for script in fs::read_dir(input_json_path.replace("game.json","animations")).unwrap() {
+            let animation = script.unwrap();
+            if animation.file_name().to_str().unwrap().ends_with(".json")
+            {
+                let mut json = String::new();
+                fs::File::open(animation.path())
+                    .expect("Failed to open the JSON file")
+                    .read_to_string(&mut json)
+                    .expect("Failed to read the JSON file");
+
+                animations.insert(
+                    animation.file_name().to_str().unwrap().to_string(),
+                    serde_json::from_str(&json).expect("Failed to deserialize JSON content"));
+            }
+        }
+        settings.animations = animations;
 
         settings
     }

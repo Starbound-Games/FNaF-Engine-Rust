@@ -1,15 +1,15 @@
-use std::cell::Ref;
 use std::error::Error;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{channel, Sender};
-use std::thread;
-use async_recursion::async_recursion;
-use serde_json::Value;
+use libc::rand;
+use rand::{random, Rng, thread_rng};
 use regex::Regex;
+use serde_json::Value;
 
+use crate::GameLoader::Code;
 
-use crate::GameLoader::{Code, Menu};
+include!("MathEvaluator.rs");
 include!("ScriptingAPI.rs");
+
 
 type CodeBlockFunction = fn(&mut EngineData, &mut EventManager, &[Value]) -> bool;
 
@@ -34,7 +34,7 @@ impl EventManager {
 
     pub fn register_listener(&mut self, event_name: String, args: Vec<String>, subcode: Vec<Code>)
     {
-        self.logger.log("Event Manager",format!("Registering Event: {:0} With args: {:?}", event_name, args).as_str());
+        self.logger.log("Event Manager", format!("Registering Event: {:0} With args: {:?}", event_name, args).as_str());
         let listener = (event_name, args, subcode);
         self.listeners.lock().unwrap().push(listener);
     }
@@ -53,11 +53,10 @@ impl EventManager {
     }
 
     pub fn kill_all_listeners(&mut self) {
-
         let mut listeners = self.listeners.lock().unwrap();
         let count = listeners.iter().count();
         listeners.clear();
-        self.logger.log("Event Manager",format!("Killed {} Listeners", count).as_str());
+        self.logger.log("Event Manager", format!("Killed {} Listeners", count).as_str());
     }
 
     pub fn register_code_block(&mut self, block_name: &str, func: CodeBlockFunction) {
@@ -77,7 +76,7 @@ impl EventManager {
     }
 
     pub fn run_block(&mut self, engine_data: &mut EngineData, code: &Code) {
-        if let Some(func) = self.code_blocks.get(&code.block) {
+        if let Some(func) = self.code_blocks.get(&code.block.to_lowercase()) {
             let args: Vec<Value> = code.args.clone();
             let result = func(engine_data, self, &args);
             if result {
@@ -97,58 +96,87 @@ impl EventManager {
         }
     }
 
-    fn parse_expression(&self, expression: &str, engine_data: &mut EngineData) -> Result<String, Box<dyn Error>> {
-        if let Some(variable_name) = self.get_variable_name(expression) {
-            return self.variables.get(&variable_name)
-                .map_or_else(|| Err(format!("Variable '{}' not found.", variable_name).into()), |value| Ok(value.clone()));
-        } else if let Some(variable_name) = self.get_data_value(expression) {
-            return self.data_values.get(&variable_name)
-                .map_or_else(|| Err(format!("Data Value '{}' not found.", variable_name).into()), |value| Ok(value.clone()));
-        } else if expression.starts_with("%math(") {
-            return Ok(self.evaluate_math_expression(expression)?);
-        } else if expression.starts_with("%ai(") {
-            return Ok(self.evaluate_ai_expression(expression, engine_data)?);
+    pub fn parse_expression(&self, expression: &str, engine_data: &mut EngineData) -> Result<String, Box<dyn Error>> {
+        let mut result = expression.to_string();
+
+        let re_random = Regex::new(r"%random\(([^,]+),([^)]+)\)").unwrap();
+        let mut rng = rand::thread_rng();
+
+        while re_random.is_match(&result) {
+            result = re_random.replace_all(&result, |caps: &regex::Captures| {
+                let a = self.get_expr(caps.get(1).unwrap().as_str(), engine_data).trim().parse::<i32>().unwrap();
+                let b = self.get_expr(caps.get(2).unwrap().as_str(), engine_data).trim().parse::<i32>().unwrap();
+                rng.gen_range(a..b).to_string()
+            }).to_string();
         }
-        Ok(expression.to_string())
-    }
 
-    fn get_variable_name(&self, expression: &str) -> Option<String> {
-        let regex = Regex::new(r"%var\((.*?)\)").unwrap();
-        regex.captures(expression)
-            .and_then(|caps| caps.get(1))
-            .map(|m| m.as_str().to_string())
-    }
+        let patterns = [
+            ("var", r"%var\((.*?)\)"),
+            ("data", r"%data\((.*?)\)"),
+            ("math", r"%math\((.*?)\)"),
+            ("ai", r"%ai\((.*?)\)"),
+            ("mouse", r"%mouse\((.*?)\)"),
+            ("game", r"%game\((.*?)\)")
+        ];
 
-    fn get_data_value(&self, expression: &str) -> Option<String> {
-        let regex = Regex::new(r"%data\((.*?)\)").unwrap();
-        regex.captures(expression)
-            .and_then(|caps| caps.get(1))
-            .map(|m| m.as_str().to_string())
-    }
+        for (expr_type, pattern) in &patterns {
+            let re = Regex::new(pattern).unwrap();
 
-    fn evaluate_math_expression(&self, expression: &str) -> Result<String, Box<dyn std::error::Error>> {
-        let regex = Regex::new(r"%math\((.*?)\)").unwrap();
-        regex.captures(expression)
-            .and_then(|caps| caps.get(1))
-            .map(|m| self.evaluate_math(m.as_str()))
-            .ok_or_else(|| "Invalid math expression.".into())
-    }
+            while re.is_match(&result) {
+                result = re.replace_all(&result, |caps: &regex::Captures| {
+                    let content = caps.get(1).unwrap().as_str();
+                    let replacement = match *expr_type {
+                        "var" => self.variables.get(content).cloned().ok_or_else(|| format!("Variable '{}' not found.", content)),
+                        "data" => self.data_values.get(content).cloned().ok_or_else(|| format!("Data Value '{}' not found.", content)),
+                        "math" => Ok(self.evaluate_math_expression(content, engine_data).unwrap()),
+                        "ai" => Ok(self.evaluate_ai_expression(content, engine_data).unwrap().to_string()),
+                        "mouse" => Err("Mouse expressions are not implemented".to_string()),
+                        "game" => Err("Game expressions are not implemented".to_string()),
+                        _ => Err(format!("Unknown expression type: {}", expr_type)),
+                    };
 
-    fn evaluate_ai_expression(&self, expression: &str, engine_data: &mut EngineData) -> Result<String, Box<dyn std::error::Error>> {
-        let regex = Regex::new(r"%ai\((.*?)\)").unwrap();
-        let args = regex.captures(expression)
-            .and_then(|caps| caps.get(1))
-            .map(|m| m.as_str())
-            .ok_or_else(|| "Invalid AI expression.")?;
-        let arg_array: Vec<&str> = args.split(',').map(|s| s.trim()).collect();
-        if arg_array.len() != 1 {
-            return Err("Invalid number of arguments for %ai().".into());
+                    replacement.unwrap_or_else(|err| err.to_string())
+                }).to_string();
+            }
         }
-        let animatronic = arg_array[0];
-        return Err("Unimplemented.".into());
-       // engine_data.game.animatronics.get(animatronic)
-         //   .and_then(|animatronic_map| animatronic_map.get(&engine_data.game.night)) // TODO: Implement OfficeData
-        //.map_or_else(|| Err(format!("Error accessing AI for Animatronic '{}' in game '{}'.", animatronic, engine_data.game.night).into()), |ai_value| Ok(ai_value.clone()))
+
+        Ok(result)
+    }
+
+    fn set_variable_value(&mut self, name: String, data: String) {
+        self.variables.insert(name, data);
+    }
+
+    fn set_data_value(&mut self, name: String, data: String) {
+        self.data_values.insert(name, data);
+    }
+
+    pub fn evaluate_math_expression(&self, expression: &str, engine_data: &mut EngineData) -> Result<String, Box<dyn Error>> {
+        match MathEvaluator::evaluate(expression) {
+            Ok(result) => Ok(result.to_string()),
+            Err(e) => {
+                engine_data.logger.log_error("EventManager", format!("Unknown math expression: {}", expression).as_str());
+                Ok("MathErr".to_string())
+            },
+        }
+    }
+
+    fn evaluate_ai_expression(&self, expression: &str, engine_data: &mut EngineData) -> Result<i32, Box<dyn std::error::Error>> {
+  //      let regex = Regex::new(r"%ai\((.*?)\)").unwrap();
+  //      let args = regex.captures(expression)
+  //          .and_then(|caps| caps.get(1))
+   //         .map(|m| m.as_str())
+    //        .ok_or_else(|| "Invalid AI expression.").unwrap();
+    //    let arg_array: Vec<&str> = args.split(',').map(|s| s.trim()).collect();
+    //    if arg_array.len() != 1 {
+   //         //  Err("Invalid number of arguments for %ai().".into()).expect("etghedtshwjhewtrsh");
+  //      }
+   //     let animatronic = arg_array[0];
+        return Ok(0);
+        // TODO: make compiler happy
+        // engine_data.game.animatronics.get(animatronic)
+        //      .and_then(|animatronic_map| animatronic_map.AI.clone().expect("Error accessing AI vector for Animatronic").get(engine_data.officemgr.Office.night as usize))
+        //      .map_or_else(|| Err(format!("Error accessing AI value for Animatronic '{}' for night '{}'.", animatronic, &engine_data.officemgr.Office.night).into()), |ai_value: &i32| Ok(ai_value.clone()))
     }
 
     fn evaluate_math(&self, expression: &str) -> String {

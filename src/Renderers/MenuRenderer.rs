@@ -9,12 +9,18 @@ pub struct MenuRenderer;
 impl MenuRenderer {
     pub fn render(ctx: &mut Context, engine: &mut EngineData, cache: &mut CacheData) -> tetra::Result {
         graphics::clear(ctx, Color::rgb(0.0, 0.0, 0.0));
-
-        if let Some(background) = cache.textures.get(&engine.game.menus[&engine.menumgr.curmenu].properties.BackgroundImage) {
-            background.draw(
-                ctx,
-                Vec2::zero(),
-            );
+        let BG_Path = &engine.game.menus[&engine.menumgr.curmenu].properties.BackgroundImage;
+        if (!BG_Path.is_empty()) {
+            cache.textures
+                .entry(BG_Path.clone())
+                .or_insert_with(||
+                    Texture::new(ctx, engine.assets
+                        .join("sprites")
+                        .join(&BG_Path.replace("\\", "/"))
+                        .to_str()
+                        .unwrap()
+                        .to_string()).unwrap())
+                .draw(ctx, Vec2::zero());
         }
         for element in &engine.game.menus[&engine.menumgr.curmenu].elements {
             let mut pos_offset: Vec2<f32> =
@@ -23,19 +29,20 @@ impl MenuRenderer {
             match element.r#type.as_str() {
                 ("Button") if !element.hidden => {
                     let uid = format!("{}-{}", &element.text, &element.fontsize);
-                    let mut text = cache.texts
+
+                    cache.texts
                         .entry(uid.clone())
-                        .or_insert_with(|| Text::new(&element.text, cache.fonts[&element.fontsize].clone()));
+                        .or_insert_with(|| Text::new(&element.text, cache.fonts[&element.fontsize].clone())).draw(ctx, pos_offset);
 
-                    let button = &engine.buttons[&element.id.to_string()];
-                    if button.is_hovered && !text.content().starts_with(">>") {
-                        text.set_content(format!(">> {}", &element.text));
-                    } else if !button.is_hovered && text.content().starts_with(">>") {
-                        text.set_content(&element.text);
+                    if  engine.menumgr.arrows_enabled && engine.buttons[&element.id].is_hovered
+                    {
+                        let suid = format!("{}-{}", ">> ", &element.fontsize);
+                        let mut arr_offset = pos_offset.clone();
+                        arr_offset.x -= (&element.fontsize * 2) as f32;
+                        cache.texts
+                            .entry(suid)
+                            .or_insert_with(|| Text::new(">> ", cache.fonts[&element.fontsize].clone())).draw(ctx, arr_offset);
                     }
-
-                    pos_offset.x -= text.get_bounds(ctx).unwrap().width - button.bounds.width - 5.0;
-                    text.draw(ctx, pos_offset);
                 }
                 ("StaticText") if !element.hidden => {
                     let uid = format!("{}-{}", &element.text, &element.fontsize);
@@ -46,8 +53,21 @@ impl MenuRenderer {
                         .draw(ctx, pos_offset);
                 }
                 "Image" if !element.hidden && !element.sprite.is_empty() => {
-                    cache.textures[&element.sprite]
+                    cache.textures
+                        .entry(element.sprite.clone())
+                        .or_insert_with( ||
+                            Texture::new(ctx, engine.assets
+                                .join("sprites")
+                                .join(&element.sprite.replace("\\", "/"))
+                                .to_str()
+                                .unwrap()
+                                .to_string()).unwrap())
                         .draw(ctx, pos_offset);
+                }
+                "Animation" => {
+                    let mut anim = cache.animations.get_mut(&element.animation.clone()).expect("FAILED TO GET ANIMATION");
+                    anim.advance(ctx);
+                    anim.draw(ctx, pos_offset);
                 }
                 _ => {}
             }

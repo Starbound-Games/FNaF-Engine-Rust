@@ -9,6 +9,8 @@ pub struct Button2D {
     pub is_hovered: bool,
     pub is_clicked: bool,
     pub is_clickable: bool,
+    pub is_image: bool,
+    x: f32
 }
 
 impl Button2D {
@@ -36,10 +38,13 @@ impl Button2D {
             is_hovered: false,
             is_clicked: false,
             is_clickable: true,
+            is_image: texture.is_some(),
+            x: bounds.x
         }
     }
 
-    pub fn update(&mut self, ctx: &mut Context) {
+    pub fn update(&mut self, ctx: &mut Context, x_offset: f32) {
+        self.bounds.x = self.x - x_offset;
         self.is_hovered = self.bounds.contains_point(input::get_mouse_position(ctx));
 
         self.is_clicked = self.is_clickable && input::is_mouse_button_down(ctx, MouseButton::Left) &&

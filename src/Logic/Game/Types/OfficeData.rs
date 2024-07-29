@@ -1,8 +1,11 @@
+use crate::GameLoader::CamUI;
+
 pub struct OfficeData {
     pub states: HashMap<String, String>,
     pub state: String,
     pub blinking_effect: bool,
     pub disable_flashlight: bool,
+    pub objects: HashMap<String, Sprite>,
     pub lights: HashMap<String, Light>,
     pub doors: HashMap<String, Door>,
     pub animations: HashMap<String, Animation>,
@@ -14,9 +17,10 @@ impl OfficeData {
     {
         OfficeData {
             states: HashMap::new(),
-            state: "".to_string(),
+            state: "Default".to_string(),
             blinking_effect: false,
             disable_flashlight: false,
+            objects: HashMap::new(),
             lights: HashMap::new(),
             doors: HashMap::new(),
             animations: HashMap::new(),
@@ -37,22 +41,23 @@ pub struct Sprite {
 pub struct Animation {
     pub id: String,
     pub is_playing: bool,
-    pub rev: bool,
-    pub animation: Vec<Frame>,
+    pub is_reversed: bool
 }
 
 pub struct Door {
     pub is_closed: bool,
-    pub animation: Vec<Frame>,
     pub button: Button,
+    pub animation: String
 }
 
 pub struct Button {
     pub is_on: bool,
+    pub clickable: bool
 }
 
 pub struct Light {
     pub is_on: bool,
+    pub clickable: bool
 }
 
 pub struct Settings {
@@ -68,13 +73,8 @@ pub struct Power {
     pub usage: i32,
     pub enabled: bool,
     pub ucn: bool,
-    pub power_out_animation: PowerOutAnim,
+    pub power_out_animation: String,
     pub animatronic_jumpscare: String,
-}
-
-pub struct PowerOutAnim {
-    pub frames: Vec<Frame>,
-    pub offset: i32,
 }
 
 pub struct Camera {
@@ -103,12 +103,81 @@ pub struct Animatronic {
     pub location_index: i32,
     pub phantom: bool,
 }
-
 pub struct AnimatronicJumpscare {
     pub sound: String,
     pub jumpscare: String,
-    pub offset: i32,
+    pub offset: i32
 }
+
+pub struct GameData {
+    pub path: String,
+    pub night: i32,
+    pub office: OfficeData,
+    pub settings: Settings,
+    pub player: Player,
+    // pub Animations: Vec<String, AnimationFrame>, //old animation data structure got deprecated, code a converter later
+    pub cameras: HashMap<String, Camera>,
+    pub cam_ui: CamUI,
+    pub animatronics: HashMap<String, Animatronic>,
+    pub power: Power,
+    pub time: i32,
+    pub paused: bool
+}
+
+impl GameData {
+    pub fn new(path: &str, night: i32) -> GameData {
+        GameData {
+            path: String::from(path),
+            night,
+            settings: Settings {
+                mask: true,
+                flashlight: true,
+                toxic: true,
+                panorama: true,
+                power: false,
+            },
+            office: OfficeData::empty(),
+            player: Player::new(),
+            cameras: Default::default(),
+            cam_ui: CamUI {
+                buttons: HashMap::new(),
+                music_box: vec![],
+                sprites: HashMap::new(),
+            },
+            animatronics: Default::default(),
+            power: Power {
+                level: 100,
+                usage: 0,
+                enabled: true,
+                ucn: false,
+                power_out_animation: String::new(),
+                animatronic_jumpscare: String::new(),
+            },
+            time: 0,
+            paused: false
+        }
+    }
+
+    pub fn set_time(&mut self, time: i32) {
+        self.time = time;
+    }
+
+    pub fn quit(&mut self) {
+        // deprecated
+    }
+
+    pub fn disable_time(&mut self) {
+        self.paused = true;
+    }
+    pub fn enable_time(&mut self) {
+        self.paused = false;
+    }
+
+    pub fn goto_menu(&mut self) {
+        // deprecated
+    }
+}
+
 
 pub struct Player {
     pub is_camera_up: bool,
@@ -120,6 +189,17 @@ pub struct Player {
 }
 
 impl Player {
+    pub fn new() -> Player {
+        Player {
+            is_camera_up: false,
+            camera_button_toggle: false,
+            is_mask_on: false,
+            is_flashlight_on: false,
+            current_camera: String::new(),
+            signal_interrupted: false,
+        }
+    }
+
     pub fn set_camera(&mut self, cam: String) {
         self.current_camera = cam;
     }
@@ -139,11 +219,6 @@ impl Player {
     pub fn mask_on(&mut self) {
         self.is_mask_on = true;
     }
-}
-
-pub struct Frame {
-    pub duration: i32,
-    pub sprite: String,
 }
 
 pub struct PathNode {

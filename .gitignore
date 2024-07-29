@@ -3,3 +3,8 @@
 /src/Arial.ttf
 /SDL2.dll
 /SDL2.lib
+/src/PluginAPI/
+*.dll
+*.lib
+src/PluginAPI/Builtin-Plugins/FNaF-World-Plugin/SDL2.dll
+/src/PluginAPI/Builtin-Plugins
