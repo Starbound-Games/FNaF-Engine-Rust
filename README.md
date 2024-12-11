@@ -36,7 +36,7 @@ To start using **FNaF Engine: Rust**, clone the repository and use Cargo to buil
 ```bash
 # Clone the repository
 git clone https://github.com/Starbound-Games/FNaF-Engine-Rust.git
-cd fnaf-engine-rust
+cd FNaF-Engine-Rust
 
 # Run the engine
 cargo run
