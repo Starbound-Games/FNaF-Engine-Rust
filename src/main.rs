@@ -232,7 +232,6 @@ impl State for GameState {
                     );
                 }
                 1 => {
-                    println!("recache");
                     OfficeManager::recache_buttons(
                         ctx,
                         &mut self.engine,
@@ -272,7 +271,8 @@ impl State for GameState {
 
     fn event(&mut self, _: &mut Context, event: Event) -> tetra::Result {
         if let Event::Resized { width, height } = event {
-            self.screen_scaler.set_outer_size(width, height);
+           // self.screen_scaler.set_outer_size(width, height);
+            self.engine.needs_recache = true;
         }
 
         Ok(())
@@ -292,6 +292,7 @@ async fn main() -> tetra::Result {
         .show_mouse(true)
         .vsync(false)
         .timestep(Timestep::Variable)
+        .high_dpi(true)
         .build()?
         .run(|ctx| {
             let mut game_state = GameState::new(ctx)?;

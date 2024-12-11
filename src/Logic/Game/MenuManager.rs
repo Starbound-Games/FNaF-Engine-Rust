@@ -22,9 +22,11 @@ impl MenuManager {
     pub fn recache_buttons(ctx: &mut Context, engine: &mut EngineData, event_manager: &mut EventManager, cache: &mut CacheData)
     {
         engine.buttons.clear();
+        let x_scale: f32 = (window::get_width(ctx) / 1280) as f32;
+        let y_scale: f32 = (window::get_height(ctx)  / 720) as f32;
         for element in &engine.game.menus[&engine.menumgr.curmenu].elements {
             let pos_offset: Vec2<f32> =
-                Vec2::new(element.x as f32 * 2.15, element.y as f32 * 2.15);
+                Vec2::new(element.x as f32 * 2.15 * x_scale, element.y as f32 * 2.15 * y_scale);
 
             match element.r#type.as_str() {
                 ("Button") if !engine.buttons.contains_key(&element.id) && !element.hidden  => {

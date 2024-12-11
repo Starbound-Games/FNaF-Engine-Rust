@@ -8,3 +8,4 @@
 *.lib
 src/PluginAPI/Builtin-Plugins/FNaF-World-Plugin/SDL2.dll
 /src/PluginAPI/Builtin-Plugins
+engine.log

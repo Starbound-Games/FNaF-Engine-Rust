@@ -15,6 +15,8 @@ pub struct Button2D {
 
 impl Button2D {
     pub fn new(ctx: &mut Context, position: Vec2<f32>, texture: Option<&Texture>, mut text: Option<&mut Text>, event: String, event_args: Vec<String>) -> Self {
+        let x_scale: f32 = (window::get_width(ctx) / 1280) as f32;
+        let y_scale: f32 = (window::get_height(ctx)  / 720) as f32;
         let mut bounds: Rectangle = match &texture {
             Some(tex) => Rectangle::new(-5.0, -5.0, tex.width() as f32 + 5.0, tex.height() as f32 + 5.0),
             None => {
@@ -30,6 +32,8 @@ impl Button2D {
 
         bounds.x = position[0] - 5.0;
         bounds.y = position[1] - 5.0;
+        bounds.height *= x_scale;
+        bounds.width *= y_scale;
 
         Self {
             bounds,
